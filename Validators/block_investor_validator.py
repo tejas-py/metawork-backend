@@ -2,5 +2,5 @@ from pydantic import BaseModel
 
 
 class BlockInvestor(BaseModel):
-    token_id: int
+    auth_id: str
     block: bool

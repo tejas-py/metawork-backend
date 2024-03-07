@@ -44,7 +44,7 @@ async def create_investor(details: Validators.create_investor_validator.Investor
 
     # Create the investors table
     db_investors = investor_model.Investors(
-        token_id=details.token_id,
+        auth_id=details.auth_id,
         wallet_address=details.wallet_address,
         registration_date_time=today_epoch_time,
         last_online=details.last_online,
@@ -58,9 +58,9 @@ async def create_investor(details: Validators.create_investor_validator.Investor
     # create holdings table
     for asset_balance in details.holding:
         db_holding = investor_model.Holdings(
-            asset_id=asset_balance.asset_id,
+            token=asset_balance.token,
             balance=asset_balance.balance,
-            investors_id=db_investors.token_id
+            investors_id=db_investors.auth_id
         )
         db.add(db_holding)
     db.commit()
@@ -70,7 +70,7 @@ async def create_investor(details: Validators.create_investor_validator.Investor
     for dividend in details.total_yield:
         db_dividend = investor_model.TotalYield(
             amount=dividend.amount,
-            investors_id=db_investors.token_id
+            investors_id=db_investors.auth_id
         )
         db.add(db_dividend)
     db.commit()
@@ -79,8 +79,12 @@ async def create_investor(details: Validators.create_investor_validator.Investor
     # create the trade history table
     for trade in details.trade_history:
         db_trade = investor_model.TradeHistory(
-            number=trade.number,
-            investors_id=db_investors.token_id
+            asset_name=trade.asset_name,
+            amount=trade.amount,
+            price=trade.price,
+            time=trade.time,
+            trade_type=trade.trade_type,
+            investors_id=db_investors.auth_id
         )
         db.add(db_trade)
     db.commit()
@@ -90,15 +94,15 @@ async def create_investor(details: Validators.create_investor_validator.Investor
 
 
 @app.get('/user/investor/')
-async def investor_details(token_id: int, db: db_dependency):
+async def investor_details(wallet_address: str, db: db_dependency):
 
-    if not token_id:
-        raise HTTPException(status_code=500, detail="token_id missing")
+    if not wallet_address:
+        raise HTTPException(status_code=500, detail="wallet_address missing")
 
     try:
-        result = db.query(investor_model.Investors).filter(investor_model.Investors.token_id == token_id).first()
+        result = db.query(investor_model.Investors).filter(investor_model.Investors.wallet_address == wallet_address).first()
         if not result:
-            return HTTPException(status_code=404, detail="User Not found")
+            return {'message': 'User not found'}
         return {'message': result}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error! Not able to found the user! {e}")
@@ -107,10 +111,12 @@ async def investor_details(token_id: int, db: db_dependency):
 @app.patch('/user/investor/login/')
 async def investor_login(payload: Validators.login_investor_validator.LoginInvestor, db: db_dependency):
     if not payload:
-        raise HTTPException(status_code=500, detail="token_id missing")
+        raise HTTPException(status_code=500, detail="auth_id missing")
     try:
-        investor_db = db.query(investor_model.Investors.filter(investor_model.Investors.token_id == payload.token_id)
-                               .first())
+        investor_db = db.query(investor_model.Investors).filter(investor_model.Investors.auth_id == payload.auth_id).first()
+
+        if investor_db.blocked:
+            return {'message': 'User Blocked'}
 
         investor_db.last_online = utils.CommonFunctions.today_seconds()
         db.add(investor_db)
@@ -122,12 +128,11 @@ async def investor_login(payload: Validators.login_investor_validator.LoginInves
 
 
 @app.patch('/user/investor/block/')
-async def login_investor(payload: Validators.block_investor_validator.BlockInvestor, db: db_dependency):
+async def toggle_investor_status(payload: Validators.block_investor_validator.BlockInvestor, db: db_dependency):
     if not payload:
-        raise HTTPException(status_code=500, detail="token_id missing")
+        raise HTTPException(status_code=500, detail="auth_id missing")
     try:
-        investor_db = db.query(investor_model.Investors.filter(investor_model.Investors.token_id == payload.token_id)
-                               .first())
+        investor_db = db.query(investor_model.Investors).filter(investor_model.Investors.auth_id == payload.auth_id).first()
 
         investor_db.blocked = payload.block
         db.add(investor_db)

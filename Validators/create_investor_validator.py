@@ -20,7 +20,7 @@ class TradeHistoryBase(BaseModel):
 
 
 class InvestorBase(BaseModel):
-    token_id: int
+    auth_id: str
     wallet_address: str
     holding: List[HoldingBase]
     total_yield: List[TotalYieldBase]

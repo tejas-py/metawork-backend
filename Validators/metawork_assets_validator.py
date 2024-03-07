@@ -2,8 +2,8 @@ from pydantic import BaseModel
 
 
 class MetaworkAssetsBase(BaseModel):
-    asset_id: int
     asset_name: str
+    token: str
     asset_symbol: str
     blockchain_network: str
     url: str
