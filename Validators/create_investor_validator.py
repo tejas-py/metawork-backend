@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Literal
+from typing import List, Literal, Union
 
 
 class HoldingBase(BaseModel):
@@ -22,10 +22,9 @@ class TradeHistoryBase(BaseModel):
 class InvestorBase(BaseModel):
     auth_id: str
     wallet_address: str
-    holding: List[HoldingBase]
-    total_yield: List[TotalYieldBase]
-    trade_history: List[TradeHistoryBase]
-    registration_date_time: int
-    last_online: int
+    holding: Union[List[HoldingBase], None]
+    total_yield: Union[List[TotalYieldBase], None]
+    trade_history: Union[List[TradeHistoryBase], None]
+    registration_date_time: Union[int, None]
+    last_online: Union[int, None]
     total_investments: int
-    total_withdrawn: int

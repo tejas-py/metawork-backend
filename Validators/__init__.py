@@ -1,4 +1,5 @@
 from Validators import login_investor_validator
 from Validators import create_investor_validator
-from Validators import  metawork_assets_validator
+from Validators import metawork_assets_validator
 from Validators import block_investor_validator
+from Validators import change_name_investor_validator

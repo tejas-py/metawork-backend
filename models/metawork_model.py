@@ -5,7 +5,7 @@ from connection.database import Base
 class MetaworkAssets(Base):
     __tablename__ = 'metawork_assets'
 
-    asset_name = Column(String,primary_key=True, index=True, unique=True)
+    asset_name = Column(String,primary_key=True, index=True)
     token = Column(String, index=True)
     asset_symbol = Column(String, unique=True)
     blockchain_network = Column(String)
