@@ -51,6 +51,9 @@ async def create_investor(details: Validators.create_investor_validator.Investor
             total_investments=details.total_investments
         )
         db.add(db_investors)
+        db.commit()
+        db.refresh(db_investors)
+
         if details.holding:
             # create holdings table
             for asset_balance in details.holding:
@@ -60,6 +63,8 @@ async def create_investor(details: Validators.create_investor_validator.Investor
                     investors_id=db_investors.auth_id
                 )
                 db.add(db_holding)
+        db.commit()
+        db.refresh(db_investors)
 
         if details.total_yield:
             # Create the yield table
@@ -69,6 +74,8 @@ async def create_investor(details: Validators.create_investor_validator.Investor
                     investors_id=db_investors.auth_id
                 )
                 db.add(db_dividend)
+        db.commit()
+        db.refresh(db_investors)
 
         if details.trade_history:
             # create the trade history table
@@ -82,9 +89,8 @@ async def create_investor(details: Validators.create_investor_validator.Investor
                     investors_id=db_investors.auth_id
                 )
                 db.add(db_trade)
-            db.commit()
-            db.refresh(db_investors)
-
+        db.commit()
+        db.refresh(db_investors)
         return {'message': 'Success'}
     except Exception as e:
         print(e)
@@ -149,6 +155,7 @@ async def investors_details(db: db_dependency):
 
     try:
         result = db.query(investor_model.Investors).all()
+        print("DATA-", result)
         return {'message': result}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error! Not able to found the investors! {e}")
