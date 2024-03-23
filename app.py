@@ -34,7 +34,7 @@ db_dependency = Annotated[Session, Depends(get_db)]
 
 @app.get("/")
 async def home_page():
-    return RedirectResponse("https://metawork.securetool.company", status_code=302)
+    return RedirectResponse("https://metawork-wallet.vercel.app", status_code=302)
 
 
 @app.post('/user/investor/create/')
