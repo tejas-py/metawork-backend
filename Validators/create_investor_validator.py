@@ -8,7 +8,9 @@ class HoldingBase(BaseModel):
 
 
 class TotalYieldBase(BaseModel):
-    amount: int
+    asset_name: str
+    units: int
+    time: int
 
 
 class TradeHistoryBase(BaseModel):

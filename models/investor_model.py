@@ -28,7 +28,9 @@ class TotalYield(Base):
     __tablename__ = 'total_yield'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    amount = Column(Integer)
+    asset_name = Column(String)
+    units = Column(Integer)
+    time = Column(Integer)
     investors_id = Column(String, ForeignKey("investors.auth_id"))
 
 

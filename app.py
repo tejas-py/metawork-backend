@@ -70,7 +70,9 @@ async def create_investor(details: Validators.create_investor_validator.Investor
             # Create the yield table
             for dividend in details.total_yield:
                 db_dividend = investor_model.TotalYield(
-                    amount=dividend.amount,
+                    asset_name=dividend.asset_name,
+                    time=dividend.time,
+                    units=dividend.units,
                     investors_id=db_investors.auth_id
                 )
                 db.add(db_dividend)
@@ -108,11 +110,12 @@ async def investor_details(wallet_address: str, db: db_dependency):
         auth_id = getattr(result, 'auth_id', None)
 
         trade_history = db.query(investor_model.TradeHistory).filter(investor_model.TradeHistory.investors_id == auth_id).all()
+        total_yield = db.query(investor_model.TotalYield).filter(investor_model.TotalYield.investors_id == auth_id).all()
 
         if not result:
             return {'message': 'User not found'}
 
-        return {'message': result, 'trade_history': trade_history}
+        return {'message': result, 'trade_history': trade_history, 'total_yield': total_yield}
     except Exception as e:
         print(e)
         raise HTTPException(status_code=400, detail=f"Error! Not able to found the user! {e}")
