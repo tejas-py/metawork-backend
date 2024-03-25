@@ -95,7 +95,6 @@ async def create_investor(details: Validators.create_investor_validator.Investor
         db.refresh(db_investors)
         return {'message': 'Success'}
     except Exception as e:
-        print(e)
         raise HTTPException(status_code=400, detail=f"Error! Not able to create the user! {e}")
 
 
@@ -117,7 +116,6 @@ async def investor_details(wallet_address: str, db: db_dependency):
 
         return {'message': result, 'trade_history': trade_history, 'total_yield': total_yield}
     except Exception as e:
-        print(e)
         raise HTTPException(status_code=400, detail=f"Error! Not able to found the user! {e}")
 
 
@@ -158,7 +156,6 @@ async def investors_details(db: db_dependency):
 
     try:
         result = db.query(investor_model.Investors).all()
-        print("DATA-", result)
         return {'message': result}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error! Not able to found the investors! {e}")
@@ -171,7 +168,17 @@ async def investors_trade_history(db: db_dependency):
         result = db.query(investor_model.TradeHistory).all()
         return {'message': result}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error! Not able to found the investors! {e}")
+        raise HTTPException(status_code=400, detail=f"Error! Not able to found the investors trade history! {e}")
+
+
+@app.get('/user/investors/yield')
+async def investors_yield(db: db_dependency):
+
+    try:
+        result = db.query(investor_model.TotalYield).all()
+        return {'message': result}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error! Not able to found the investors total yield! {e}")
 
 
 @app.post('/user/investors/trade_history/create')
@@ -209,7 +216,6 @@ async def change_name_investor(payload: Validators.change_name_investor_validato
         raise HTTPException(status_code=500, detail="auth_id missing")
     try:
         investor_db = db.query(investor_model.Investors).filter(investor_model.Investors.auth_id == payload.auth_id).first()
-        print("DATA----", payload)
         investor_db.name = payload.name
         db.add(investor_db)
         db.commit()
