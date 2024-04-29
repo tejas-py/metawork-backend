@@ -21,7 +21,7 @@ class TradeHistoryBase(BaseModel):
     trade_type: Literal['buy', 'sell']
 
 
-class InvestorBase(BaseModel):
+class UserBase(BaseModel):
     auth_id: str
     wallet_address: str
     holding: Union[List[HoldingBase], None]
@@ -30,3 +30,4 @@ class InvestorBase(BaseModel):
     registration_date_time: Union[int, None]
     last_online: Union[int, None]
     total_investments: int
+    user_type: Literal['metaworker', 'investor', 'both']

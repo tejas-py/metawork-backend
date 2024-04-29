@@ -6,12 +6,12 @@ from sqlalchemy.orm import Session
 
 import utils.CommonFunctions
 from connection.database import SessionLocal, engine
-from models import investor_model
+from models import user_model
 import Validators
 
 # Configure app
 app = FastAPI()
-investor_model.Base.metadata.create_all(bind=engine)
+user_model.Base.metadata.create_all(bind=engine)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allows all origins
@@ -37,79 +37,81 @@ async def home_page():
     return RedirectResponse("https://metawork-wallet.vercel.app", status_code=302)
 
 
-@app.post('/user/investor/create/')
-async def create_investor(details: Validators.create_investor_validator.InvestorBase, db: db_dependency):
+@app.post('/user/create/')
+async def create_user(details: Validators.create_user_validator.UserBase, db: db_dependency):
     try:
         # Get today seconds
         today_epoch_time = utils.CommonFunctions.today_seconds()
-        # Create the investors table
-        db_investors = investor_model.Investors(
+
+        # Create the user table
+        db_users = user_model.Users(
             auth_id=details.auth_id,
             wallet_address=details.wallet_address,
             registration_date_time=today_epoch_time,
             last_online=today_epoch_time,
-            total_investments=details.total_investments
+            total_investments=details.total_investments,
+            user_type=details.user_type
         )
-        db.add(db_investors)
+        db.add(db_users)
         db.commit()
-        db.refresh(db_investors)
+        db.refresh(db_users)
 
+        # create holdings table
         if details.holding:
-            # create holdings table
             for asset_balance in details.holding:
-                db_holding = investor_model.Holdings(
+                db_holding = user_model.Holdings(
                     token=asset_balance.token,
                     balance=asset_balance.balance,
-                    investors_id=db_investors.auth_id
+                    user_id=db_users.auth_id
                 )
                 db.add(db_holding)
         db.commit()
-        db.refresh(db_investors)
+        db.refresh(db_users)
 
+        # Create the yield table
         if details.total_yield:
-            # Create the yield table
             for dividend in details.total_yield:
-                db_dividend = investor_model.TotalYield(
+                db_dividend = user_model.TotalYield(
                     asset_name=dividend.asset_name,
                     time=dividend.time,
                     units=dividend.units,
-                    investors_id=db_investors.auth_id
+                    user_id=db_users.auth_id
                 )
                 db.add(db_dividend)
         db.commit()
-        db.refresh(db_investors)
+        db.refresh(db_users)
 
+        # create the trade history table
         if details.trade_history:
-            # create the trade history table
             for trade in details.trade_history:
-                db_trade = investor_model.TradeHistory(
+                db_trade = user_model.TradeHistory(
                     asset_name=trade.asset_name,
                     amount=trade.amount,
                     price=trade.price,
                     time=trade.time,
                     trade_type=trade.trade_type,
-                    investors_id=db_investors.auth_id
+                    user_id=db_users.auth_id
                 )
                 db.add(db_trade)
         db.commit()
-        db.refresh(db_investors)
+        db.refresh(db_users)
         return {'message': 'Success'}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error! Not able to create the user! {e}")
 
 
-@app.get('/user/investor/')
-async def investor_details(wallet_address: str, db: db_dependency):
+@app.get('/user/')
+async def user_details(wallet_address: str, db: db_dependency):
 
     if not wallet_address:
         raise HTTPException(status_code=500, detail="wallet_address missing")
 
     try:
-        result = db.query(investor_model.Investors).filter(investor_model.Investors.wallet_address == wallet_address).first()
-        auth_id = getattr(result, 'auth_id', None)
+        result = db.query(user_model.Users).filter(user_model.Users.wallet_address == wallet_address).first()
+        auth_id: str = getattr(result, 'auth_id', None)
 
-        trade_history = db.query(investor_model.TradeHistory).filter(investor_model.TradeHistory.investors_id == auth_id).all()
-        total_yield = db.query(investor_model.TotalYield).filter(investor_model.TotalYield.investors_id == auth_id).all()
+        trade_history = db.query(user_model.TradeHistory).filter(user_model.TradeHistory.user_id == auth_id).all()
+        total_yield = db.query(user_model.TotalYield).filter(user_model.TotalYield.user_id == auth_id).all()
 
         if not result:
             return {'message': 'User not found'}
@@ -123,7 +125,7 @@ async def investor_details(wallet_address: str, db: db_dependency):
 async def investor_investments(db: db_dependency):
 
     try:
-        result = db.query(investor_model.Investors).all()
+        result = db.query(user_model.Users).all()
 
         total_investment = 0
         for investor_detail in result:
@@ -135,37 +137,21 @@ async def investor_investments(db: db_dependency):
         raise HTTPException(status_code=400, detail=f"Error! Not able to found the investments! {e}")
 
 
-@app.get('/user/investors/withdrawals')
-async def investor_withdrawals(db: db_dependency):
+@app.get('/user/all')
+async def users_details(db: db_dependency):
 
     try:
-        result = db.query(investor_model.Investors).all()
-
-        total_withdrawals = 0
-        for investor_detail in result:
-            withdraws = investor_detail.total_withdrawn
-            total_withdrawals += withdraws
-
-        return {'message': total_withdrawals}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error! Not able to found the withdraws! {e}")
-
-
-@app.get('/user/investors/')
-async def investors_details(db: db_dependency):
-
-    try:
-        result = db.query(investor_model.Investors).all()
+        result = db.query(user_model.Users).all()
         return {'message': result}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error! Not able to found the investors! {e}")
+        raise HTTPException(status_code=400, detail=f"Error! Not able to found the users! {e}")
 
 
 @app.get('/user/investors/trade_history')
 async def investors_trade_history(db: db_dependency):
 
     try:
-        result = db.query(investor_model.TradeHistory).all()
+        result = db.query(user_model.TradeHistory).all()
         return {'message': result}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error! Not able to found the investors trade history! {e}")
@@ -175,7 +161,7 @@ async def investors_trade_history(db: db_dependency):
 async def investors_yield(db: db_dependency):
 
     try:
-        result = db.query(investor_model.TotalYield).all()
+        result = db.query(user_model.TotalYield).all()
         return {'message': result}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error! Not able to found the investors total yield! {e}")
@@ -185,57 +171,57 @@ async def investors_yield(db: db_dependency):
 async def create_trade_history(db: db_dependency):
 
     try:
-        result = db.query(investor_model.TradeHistory).all()
+        result = db.query(user_model.TradeHistory).all()
         return {'message': result}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error! Not able to found the investors! {e}")
 
 
-@app.patch('/user/investor/login/')
-async def investor_login(payload: Validators.login_investor_validator.LoginInvestor, db: db_dependency):
+@app.patch('/user/login/')
+async def user_login(payload: Validators.login_user_validator.LoginUser, db: db_dependency):
     if not payload:
         raise HTTPException(status_code=500, detail="auth_id missing")
     try:
-        investor_db = db.query(investor_model.Investors).filter(investor_model.Investors.auth_id == payload.auth_id).first()
+        user_db = db.query(user_model.Users).filter(user_model.Users.auth_id == payload.auth_id).first()
 
-        if investor_db.blocked:
+        if user_db.blocked:
             return {'message': 'User Blocked'}
 
-        investor_db.last_online = utils.CommonFunctions.today_seconds()
-        db.add(investor_db)
+        user_db.last_online = utils.CommonFunctions.today_seconds()
+        db.add(user_db)
         db.commit()
-        db.refresh(investor_db)
+        db.refresh(user_db)
         return {'message': 'Success'}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error! Not able to login the user! {e}")
 
 
-@app.patch('/user/investor/change_name/')
-async def change_name_investor(payload: Validators.change_name_investor_validator.ChangeNameInvestor, db: db_dependency):
+@app.patch('/user/change_name/')
+async def change_name_user(payload: Validators.change_name_user_validator.ChangeNameUser, db: db_dependency):
     if not payload:
         raise HTTPException(status_code=500, detail="auth_id missing")
     try:
-        investor_db = db.query(investor_model.Investors).filter(investor_model.Investors.auth_id == payload.auth_id).first()
-        investor_db.name = payload.name
-        db.add(investor_db)
+        user_db = db.query(user_model.Users).filter(user_model.Users.auth_id == payload.auth_id).first()
+        user_db.name = payload.name
+        db.add(user_db)
         db.commit()
-        db.refresh(investor_db)
+        db.refresh(user_db)
         return {'message': 'Success'}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error! Not able to change the name of the user! {e}")
 
 
-@app.patch('/user/investor/block/')
-async def toggle_investor_status(payload: Validators.block_investor_validator.BlockInvestor, db: db_dependency):
+@app.patch('/user/block/')
+async def toggle_user_status(payload: Validators.block_user_validator.BlockUser, db: db_dependency):
     if not payload:
         raise HTTPException(status_code=500, detail="auth_id missing")
     try:
-        investor_db = db.query(investor_model.Investors).filter(investor_model.Investors.auth_id == payload.auth_id).first()
+        user_db = db.query(user_model.Users).filter(user_model.Users.auth_id == payload.auth_id).first()
 
-        investor_db.blocked = payload.block
-        db.add(investor_db)
+        user_db.blocked = payload.block
+        db.add(user_db)
         db.commit()
-        db.refresh(investor_db)
-        return {'message': investor_db}
+        db.refresh(user_db)
+        return {'message': user_db}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error! Not able to login the user! {e}")
