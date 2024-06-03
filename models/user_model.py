@@ -11,26 +11,35 @@ class Users(Base):
     registration_date_time = Column(Integer)
     last_online = Column(Integer)
     total_investments = Column(Integer)
+    dividend_wallet = Column(String, unique=True, nullable=True)
     blocked = Column(Boolean, default=False)
-    user_type = Column(Enum("metaworker", "investor", "both", name="user_type"))
+    user_type = Column(Enum("metaworker", "investor", "both", "admin", name="user_type"))
 
 
-class Holdings(Base):
-    __tablename__ = 'holdings'
+class GenopetsWallet(Base):
+    __tablename__ = 'genopets_wallet'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    token = Column(String)
-    balance = Column(Integer)
+    blockchain = Column(String)
+    holding_wallet = Column(String, unique=True)
     user_id = Column(String, ForeignKey("users.auth_id"))
 
 
-class TotalYield(Base):
-    __tablename__ = 'total_yield'
+class SynesisOneWallet(Base):
+    __tablename__ = 'synesis_one_wallet'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    asset_name = Column(String)
-    units = Column(Integer)
-    time = Column(Integer)
+    blockchain = Column(String)
+    holding_wallet = Column(String, unique=True)
+    user_id = Column(String, ForeignKey("users.auth_id"))
+
+
+class StarAtlasWallet(Base):
+    __tablename__ = 'star_atlas_wallet'
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    blockchain = Column(String)
+    holding_wallet = Column(String, unique=True)
     user_id = Column(String, ForeignKey("users.auth_id"))
 
 
